@@ -7,7 +7,7 @@ ARG TARGETARCH
 
 WORKDIR /app/
 ADD . .
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s" -o purpleair_exporter main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags="-w -s" -o greatriverenergy_exporter main.go
 
 FROM --platform=${TARGETPLATFORM:-linux/amd64} scratch
 COPY --from=builder /app/greatriverenergy_exporter /greatriverenergy_exporter
