@@ -8,7 +8,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -124,8 +123,6 @@ func (c Client) History(ctx context.Context, historyType HistoryType, startOn, e
 	if err != nil {
 		return nil, err
 	}
-
-	_ = os.WriteFile("dump.html", body, 0644)
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
