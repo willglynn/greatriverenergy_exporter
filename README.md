@@ -96,16 +96,14 @@ A good starting point:
 ```yaml
 scrape_configs:
   - job_name: 'greatriverenergy'
-    scrape_interval: 5m
+    scrape_interval: 2m
     static_configs:
       - targets:
           - http://localhost:2024
 
   - job_name: 'greatriverenergy_history'
-    scrape_interval: 3h
+    scrape_interval: 1h
     metrics_path: /history
-    params:
-      days: 7
     static_configs:
       - targets:
           - http://localhost:2024
