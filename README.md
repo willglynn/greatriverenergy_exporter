@@ -100,6 +100,10 @@ scrape_configs:
     static_configs:
       - targets:
           - http://localhost:2024
+    metric_relabel_configs:
+      - if: '{__name__=~"^greatriverenergy_.*"}'
+        action: labeldrop
+        regex: "instance|job"
 
   - job_name: 'greatriverenergy_history'
     scrape_interval: 1h
@@ -107,4 +111,8 @@ scrape_configs:
     static_configs:
       - targets:
           - http://localhost:2024
+    metric_relabel_configs:
+      - if: '{__name__=~"^greatriverenergy_.*"}'
+        action: labeldrop
+        regex: "instance|job"
 ```
