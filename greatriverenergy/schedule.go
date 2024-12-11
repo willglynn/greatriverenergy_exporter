@@ -3,7 +3,9 @@ package greatriverenergy
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -162,11 +164,18 @@ func parseScheduleTable(table *goquery.Selection, day time.Time) ([]ProgramSched
 		}
 
 		var startAt time.Time
-		switch cells[3] {
-		case "Undetermined":
+		if cells[3] == "Undetermined" {
 			// zero value is correct
-		default:
-			err = fmt.Errorf("unable to parse time %q", cells[3])
+		} else if parts := strings.Split(cells[3], " - "); len(parts) == 2 {
+			ymd := day.Format("2006-01-02 ")
+			start, err := time.ParseInLocation("2006-01-02 03:04 PM", ymd+parts[0], day.Location())
+			if err == nil {
+				startAt = start
+			} else {
+				log.Printf("warning: failed to parse start time %q", parts[0])
+			}
+		} else {
+			log.Printf("warning: failed to parse start time %q", cells[3])
 		}
 
 		out = append(out, ProgramSchedule{
