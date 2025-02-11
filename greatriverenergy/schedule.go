@@ -22,6 +22,7 @@ type ProgramSchedule struct {
 	ProgramType       string      `json:"programType"`
 	Probability       Probability `json:"probability"`
 	ExpectedStartTime time.Time   `json:"expectedStartTime,omitempty"`
+	ExpectedEndTime   time.Time   `json:"expectedEndTime,omitempty"`
 }
 
 type ConservationStatus int
@@ -163,7 +164,7 @@ func parseScheduleTable(table *goquery.Selection, day time.Time) ([]ProgramSched
 			err = fmt.Errorf("unrecognized probability: %q", probability)
 		}
 
-		var startAt time.Time
+		var startAt, endAt time.Time
 		if cells[3] == "Undetermined" {
 			// zero value is correct
 		} else if parts := strings.Split(cells[3], " - "); len(parts) == 2 {
@@ -174,8 +175,15 @@ func parseScheduleTable(table *goquery.Selection, day time.Time) ([]ProgramSched
 			} else {
 				log.Printf("warning: failed to parse start time %q", parts[0])
 			}
+
+			end, err := time.ParseInLocation("2006-01-02 03:04 PM", ymd+parts[1], day.Location())
+			if err == nil {
+				endAt = end
+			} else {
+				log.Printf("warning: failed to parse end time %q", parts[1])
+			}
 		} else {
-			log.Printf("warning: failed to parse start time %q", cells[3])
+			log.Printf("warning: failed to parse time %q", cells[3])
 		}
 
 		out = append(out, ProgramSchedule{
@@ -183,6 +191,7 @@ func parseScheduleTable(table *goquery.Selection, day time.Time) ([]ProgramSched
 			ProgramType:       cells[1],
 			Probability:       probability,
 			ExpectedStartTime: startAt,
+			ExpectedEndTime:   endAt,
 		})
 	})
 

@@ -72,6 +72,7 @@ func (c Realtime) Describe(descs chan<- *prometheus.Desc) {
 func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 	ctx := context.Background()
 
+	var scheduleEvents []greatriverenergy.ProgramSchedule
 	if schedule, err := c.client.Schedule(ctx); err != nil {
 		log.Printf("Schedule() failed: %v", err)
 	} else {
@@ -81,6 +82,7 @@ func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 			"today":    schedule.Today,
 			"next_day": schedule.NextDay,
 		} {
+			scheduleEvents = append(scheduleEvents, programs...)
 			for _, program := range programs {
 				metrics <- prometheus.MustNewConstMetric(c.shedLikelihood, prometheus.GaugeValue, float64(program.Probability), program.ProgramType, when)
 			}
@@ -108,6 +110,25 @@ func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 		if err != nil {
 			log.Printf("History(%q) failed: %v", historyType, err)
 			continue
+		}
+
+		// Merge in any scheduled events
+		for _, program := range scheduleEvents {
+			// Ignore any events not for this class or not scheduled
+			if program.Probability != greatriverenergy.ProbabilityScheduled {
+				continue
+			}
+			if (class == "R" && program.Class != greatriverenergy.ClassR) || (class == "CI" && program.Class != greatriverenergy.ClassCI) {
+				continue
+			}
+
+			// Synthesize a record
+			history.Events = append(history.Events, greatriverenergy.HistoryEvent{
+				ProgramName: program.ProgramType,
+				Hours:       program.ExpectedEndTime.Sub(program.ExpectedStartTime).Hours(),
+				StartAt:     program.ExpectedStartTime,
+				EndAt:       program.ExpectedEndTime,
+			})
 		}
 
 		programOngoing := make(map[string]int)
