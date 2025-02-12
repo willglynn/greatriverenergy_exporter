@@ -16,6 +16,7 @@ type Realtime struct {
 
 	conservationStatus *prometheus.Desc
 	shedLikelihood     *prometheus.Desc
+	scheduleUpdated    *prometheus.Desc
 
 	shedCount        *prometheus.Desc
 	shedCountResetOn *prometheus.Desc
@@ -38,6 +39,7 @@ func NewRealtime(rt http.RoundTripper) Realtime {
 			"An indicator of the likelihood of using a load shedding program. 1 = Unlikely, 2 = Possible, 3 = Likely, 4 = Scheduled",
 			[]string{"program", "when"}, nil,
 		),
+		scheduleUpdated: prometheus.NewDesc("greatriverenergy_scheduled_updated", "The timestamp at which the schedule was last updated", nil, nil),
 
 		shedCount: prometheus.NewDesc("greatriverenergy_shed_count",
 			"The number of times a load shedding event occurred",
@@ -62,6 +64,7 @@ func NewRealtime(rt http.RoundTripper) Realtime {
 func (c Realtime) Describe(descs chan<- *prometheus.Desc) {
 	descs <- c.conservationStatus
 	descs <- c.shedLikelihood
+	descs <- c.scheduleUpdated
 	descs <- c.shedCount
 	descs <- c.shedCountResetOn
 	descs <- c.ongoingShedEvent
@@ -77,6 +80,7 @@ func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 		log.Printf("Schedule() failed: %v", err)
 	} else {
 		metrics <- prometheus.MustNewConstMetric(c.conservationStatus, prometheus.GaugeValue, float64(schedule.ConservationGauge))
+		metrics <- prometheus.MustNewConstMetric(c.scheduleUpdated, prometheus.GaugeValue, float64(schedule.LastUpdated.Unix()))
 
 		for when, programs := range map[string][]greatriverenergy.ProgramSchedule{
 			"today":    schedule.Today,

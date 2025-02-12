@@ -15,6 +15,7 @@ type Schedule struct {
 	ConservationGauge ConservationStatus `json:"conservationGauge"`
 	Today             []ProgramSchedule  `json:"today"`
 	NextDay           []ProgramSchedule  `json:"nextDay"`
+	LastUpdated       time.Time          `json:"lastUpdated"`
 }
 
 type ProgramSchedule struct {
@@ -112,9 +113,13 @@ func (c Client) Schedule(ctx context.Context) (*Schedule, error) {
 		return nil, fmt.Errorf("scrape failure: unable to determine conservation status (src=%q)", conservationGaugeImgSrc)
 	}
 
-	// TODO: parse ymd from page
-	y, m, d := time.Now().In(tz).Date()
-	today := time.Date(y, m, d, 0, 0, 0, 0, tz)
+	var today time.Time
+	dateTime := doc.Find("#ContentPlaceHolder2_DateTime_Label").Text()
+	if dateTime, found := strings.CutSuffix(dateTime, " CPT"); !found {
+		return nil, fmt.Errorf("current date/time did not end in \"CPT\": %q", dateTime)
+	} else if today, err = time.ParseInLocation("Mon Jan _2, 2006 - 03:04 PM", dateTime, tz); err != nil {
+		return nil, fmt.Errorf("failed to parse date/time %q: %v", dateTime, err)
+	}
 	nextDay := today.AddDate(0, 0, 1)
 
 	todaySchedule, err := parseScheduleTable(doc.Find("#ContentPlaceHolder2_TodaySched_Table"), today)
@@ -127,10 +132,18 @@ func (c Client) Schedule(ctx context.Context) (*Schedule, error) {
 		return nil, fmt.Errorf("scrape failure: failed to parse Next Day table: %v", err)
 	}
 
+	var lastUpdated time.Time
+	if lastUpdatedStr, found := strings.CutSuffix(doc.Find("#ContentPlaceHolder2_LastUdpated_Label").Text(), " CPT"); !found {
+		return nil, fmt.Errorf("last updated date/time did not end in \"CPT\": %q", lastUpdatedStr)
+	} else if lastUpdated, err = time.ParseInLocation("01/02/2006 03:04 PM", lastUpdatedStr, tz); err != nil {
+		return nil, fmt.Errorf("failed to parse last updated time: %v", err)
+	}
+
 	return &Schedule{
 		ConservationGauge: conservationGauge,
 		Today:             todaySchedule,
 		NextDay:           nextDaySchedule,
+		LastUpdated:       lastUpdated,
 	}, nil
 }
 
