@@ -154,7 +154,7 @@ func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 				// Determine when
 				seconds := event.StartAt.Sub(now).Seconds()
 				// Store it if we have no record, or if the record indicates a longer interval
-				if v, ok := programStart[event.ProgramName]; !ok || v < seconds {
+				if v, ok := programStart[event.ProgramName]; !ok || v > seconds {
 					programStart[event.ProgramName] = seconds
 				}
 			}
@@ -163,7 +163,7 @@ func (c Realtime) Collect(metrics chan<- prometheus.Metric) {
 			if event.EndAt.After(now) {
 				seconds := event.EndAt.Sub(now).Seconds()
 				// Store it if we have no record, or if the record indicates a longer interval
-				if v, ok := programEnd[event.ProgramName]; !ok || v < seconds {
+				if v, ok := programEnd[event.ProgramName]; !ok || v > seconds {
 					programEnd[event.ProgramName] = seconds
 				}
 			}
